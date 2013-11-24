@@ -8,7 +8,7 @@ module NetworkedGame.Server
 import Control.Concurrent (forkIO, threadDelay, ThreadId,
                            Chan, newChan, readChan, writeChan)
 import Control.Exception (SomeException, handle, bracket_)
-import Control.Monad (forM_, forever)
+import Control.Monad (forM_, forever, when)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Binary (Binary, encode, decode)
 import Data.Foldable (for_)
@@ -116,8 +116,9 @@ tickThread ::
   Chan (ServerEvent c) {- ^ outgoing tick queue             	-} ->
   IO ()
 tickThread env events =
-  forever $ do writeChan events TickEvent
-               threadDelay $ 1000000 `div` eventsPerSecond env
+  when (eventsPerSecond env > 0) $
+      forever $ do writeChan events TickEvent
+                   threadDelay $ 1000000 `div` eventsPerSecond env
 
 data ServerEvent c
   = TickEvent

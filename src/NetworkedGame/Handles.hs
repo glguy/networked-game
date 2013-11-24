@@ -12,7 +12,7 @@ import System.IO (Handle)
 newtype Handles = Handles (IntMap Handle)
 
 newtype ConnectionId = ConnectionId Int
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Show, Ord, Read)
 
 emptyHandles :: Handles
 emptyHandles = Handles IntMap.empty
