@@ -2,20 +2,23 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                networked-game
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            Networked-game support library
--- description:         
 license:             BSD3
 license-file:        LICENSE
 author:              Eric Mertens
 maintainer:          emertens@gmail.com
--- copyright:           
 category:            Network
 build-type:          Simple
 cabal-version:       >=1.8
 
 library
   exposed-modules:     NetworkedGame.Handles, NetworkedGame.Packet, NetworkedGame.Server
-  -- other-modules:       
-  build-depends:       base, containers, bytestring, binary, transformers, time, network
+  build-depends:       base >= 4.6 && < 4.10,
+                       containers < 0.6,
+                       bytestring < 0.11,
+                       binary < 0.9,
+                       transformers < 0.6,
+                       time < 1.7,
+                       network < 2.7
   hs-source-dirs:      src
