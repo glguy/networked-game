@@ -14,16 +14,15 @@ import Data.Binary (Binary, encode, decode)
 import Data.Foldable (for_)
 import Data.Int (Int64)
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
-import Network (PortID, accept, listenOn, Socket)
-import Network.Socket (getSocketName)
-import System.IO (Handle)
+import Network.Socket
+import System.IO (Handle, IOMode(ReadWriteMode))
 import qualified Data.ByteString.Lazy as B
 
 import NetworkedGame.Handles
 import NetworkedGame.Packet
 
 data NetworkServer c w = NetworkServer
-  { serverPort   :: PortID
+  { serverPort   :: PortNumber
   , eventsPerSecond :: Int
   , onTick       :: Handles -> Float             -> w -> IO w
   , onConnect    :: Handles -> ConnectionId      -> w -> IO w
@@ -52,10 +51,17 @@ startNetwork ::
   Chan (ServerEvent c) ->
   IO ThreadId
 startNetwork env events =
-  do sock       <- listenOn $ serverPort env
-     sockName   <- getSocketName sock
-     putStrLn $ "Server listening on " ++ show sockName
-     forkIO $ mapM_ (acceptClient events sock . ConnectionId) [0..]
+  do ai:_ <- getAddrInfo
+               (Just defaultHints { addrFlags = [AI_PASSIVE, AI_ADDRCONFIG]
+                                  , addrSocketType = Stream })
+               Nothing
+               (Just (show (serverPort env)))
+     sock <- socket (addrFamily ai) (addrSocketType ai) (addrProtocol ai)
+     bind sock (addrAddress ai)
+     listen sock 10
+     sockName <- getSocketName sock
+     putStrLn ("Server listening on " ++ show sockName)
+     forkIO (mapM_ (acceptClient events sock . ConnectionId) [0..])
 
 -- | Accept a connection and create a thread to manage incoming data
 -- from that connection.
@@ -66,8 +72,9 @@ acceptClient ::
   ConnectionId {- ^ next available connection id -} ->
   IO ThreadId
 acceptClient events sock i =
-  do (h,host,port) <- accept sock
-     putStrLn $ concat ["Got connection from ", host, ":", show port]
+  do (sock1,addr) <- accept sock
+     h <- socketToHandle sock1 ReadWriteMode
+     putStrLn $ concat ["Got connection from ", show addr]
      forkIO $ bracket_ (writeChan events $ JoinEvent i h)
                        (writeChan events $ DisconnectEvent i)
                        (clientSocketLoop i h events)
